@@ -176,7 +176,7 @@ class CustomScreenHandler(
             override fun clear() {}
             override fun size() = containerSize
             override fun isEmpty() = virtualLayout.all { it.isEmpty }
-            override fun getStack(slot: Int) = if (slot in 0 until containerSize) virtualLayout[slot] else ItemStack.EMPTY
+            override fun getStack(slot: Int) = virtualLayout.getOrNull(slot) ?: ItemStack.EMPTY
             override fun removeStack(slot: Int, amount: Int) = ItemStack.EMPTY
             override fun removeStack(slot: Int) = ItemStack.EMPTY
             override fun setStack(slot: Int, stack: ItemStack) {
@@ -214,23 +214,24 @@ class CustomScreenHandler(
     override fun canUse(player: PlayerEntity) = true
 
     override fun onSlotClick(slotIndex: Int, button: Int, actionType: SlotActionType, player: PlayerEntity) {
-        if (slotIndex < 0 || slotIndex >= slots.size) {
-            return
-        }
+        if (slotIndex < 0 || slotIndex >= slots.size) return
+
         val isGuiSlot = slotIndex in 0 until containerSize
+
         if (isGuiSlot && player is ServerPlayerEntity) {
             val stack = virtualLayout[slotIndex]
             val clickType = if (button == 0) ClickType.LEFT else ClickType.RIGHT
             val context = InteractionContext(slotIndex, clickType, button, stack, player)
+
             onInteract?.invoke(context)
             player.networkHandler.sendPacket(
                 ScreenHandlerSlotUpdateS2CPacket(syncId, nextRevision(), slotIndex, stack)
             )
+
             return
         }
-        if (!isGuiSlot) {
-            super.onSlotClick(slotIndex, button, actionType, player)
-        }
+
+        if (!isGuiSlot) super.onSlotClick(slotIndex, button, actionType, player)
     }
 
     /**
